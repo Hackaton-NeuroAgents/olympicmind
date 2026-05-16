@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import axios from 'axios';
 import MapView from './MapView';
 import ChatInterface from './ChatInterface';
 import AlertPanel from './AlertPanel';
 import RoutePlanner from './RoutePlanner';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const Dashboard = () => {
   const [crowdData, setCrowdData] = useState({ venues: [] });
@@ -14,7 +16,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchCrowdData = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/crowd');
+        const res = await axios.get(`${API_BASE_URL}/crowd`);
         setCrowdData(res.data.crowd_data);
         setIncidents(res.data.incidents);
         setLoading(false);

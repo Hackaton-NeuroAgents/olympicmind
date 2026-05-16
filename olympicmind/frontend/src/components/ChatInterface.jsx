@@ -1,6 +1,8 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { Send, Bot, User, Loader2 } from 'lucide-react';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const ChatInterface = () => {
   const [messages, setMessages] = useState([
@@ -28,7 +30,7 @@ const ChatInterface = () => {
     setIsTyping(true);
 
     try {
-      const res = await axios.post('http://localhost:8000/chat', {
+      const res = await axios.post(`${API_BASE_URL}/chat`, {
         message: userMsg,
         history: messages.slice(1) // omit initial greeting if needed, or pass all
       });

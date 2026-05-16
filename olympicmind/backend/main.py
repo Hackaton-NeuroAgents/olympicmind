@@ -1,15 +1,21 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+import os
+from dotenv import load_dotenv
 from agent import chat_with_agent
 from crowd_monitor import get_crowd_data, simulate_crowd_change, check_for_incidents
 from routes import get_best_route
-from n8n_trigger import send_whatsapp_alert
+
+load_dotenv()
 
 app = FastAPI()
 
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173")
+allowed_origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
+
 app.add_middleware(CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"]
 )
@@ -34,11 +40,7 @@ async def chat(req: ChatRequest):
 async def crowd():
     data = simulate_crowd_change()
     incidents = check_for_incidents(data)
-    
-    # Auto send WhatsApp if incidents found
-    for incident in incidents:
-        send_whatsapp_alert(incident)
-    
+
     return {"crowd_data": data, "incidents": incidents}
 
 # Get route recommendation  
