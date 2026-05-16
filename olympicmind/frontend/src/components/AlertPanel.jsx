@@ -1,4 +1,3 @@
-import React from 'react';
 import { AlertTriangle, CheckCircle2, MapPin } from 'lucide-react';
 
 const AlertPanel = ({ incidents }) => {
@@ -33,7 +32,7 @@ const AlertPanel = ({ incidents }) => {
             <p className="text-xs text-gray-300 mb-2">{incident.message}</p>
             <div className="flex items-center gap-1.5 text-xs text-accent font-medium">
               <CheckCircle2 size={12} />
-              <span>WhatsApp Alert Sent to Team</span>
+              <span>Alert queued for n8n WhatsApp workflow</span>
             </div>
           </div>
         </div>

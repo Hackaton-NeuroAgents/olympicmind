@@ -1,22 +1,75 @@
 {
-  "name": "OlympicMind WhatsApp Alerts",
+  "name": "OlympicMind WhatsApp Alerts (Cron)",
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "POST",
-        "path": "olympicmind-alerts",
-        "responseMode": "onReceived",
-        "options": {}
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
+          ]
+        }
       },
       "id": "e4b9b940-b6f7-4c74-8451-b8efd84e5a97",
-      "name": "Webhook",
-      "type": "n8n-nodes-base.webhook",
+      "name": "Every 10 Minutes",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://localhost:8000/crowd",
+        "options": {}
+      },
+      "id": "90d6bc53-ab21-4477-a4c6-276f42086dbf",
+      "name": "Fetch Crowd Data",
+      "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 1,
       "position": [
-        300,
+        460,
         400
-      ],
-      "webhookId": "olympicmind-alerts-webhook"
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ Array.isArray($json.incidents) && $json.incidents.length > 0 }}",
+              "value2": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a0372f51-5c61-4971-9f6f-aeb74819d7cf",
+      "name": "Has Incidents?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        700,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "incidents",
+        "options": {}
+      },
+      "id": "a5f087fd-0c6c-468e-a93b-a7ae4f80a56a",
+      "name": "Split Incidents",
+      "type": "n8n-nodes-base.itemLists",
+      "typeVersion": 3,
+      "position": [
+        920,
+        400
+      ]
     },
     {
       "parameters": {
@@ -32,19 +85,19 @@
                 "parameter": [
                   {
                     "type": "text",
-                    "text": "={{ $json.body.venue }}"
+                    "text": "={{ $json.venue || $json.incidents?.venue || 'Unknown venue' }}"
                   },
                   {
                     "type": "text",
-                    "text": "={{ $json.body.crowd_level }}%"
+                    "text": "={{ ($json.level || $json.incidents?.level || 0) + '%' }}"
                   },
                   {
                     "type": "text",
-                    "text": "={{ $json.body.message }}"
+                    "text": "={{ $json.message || $json.incidents?.message || 'Traffic incident detected.' }}"
                   },
                   {
                     "type": "text",
-                    "text": "={{ $json.body.recommendation }}"
+                    "text": "={{ ($json.type || $json.incidents?.type) === 'BLOCKED' ? 'Use an alternative road immediately.' : 'Prefer less congested alternatives.' }}"
                   }
                 ]
               }
@@ -57,14 +110,48 @@
       "type": "n8n-nodes-base.whatsApp",
       "typeVersion": 1,
       "position": [
-        560,
+        1160,
         400
       ]
     }
   ],
   "pinData": {},
   "connections": {
-    "Webhook": {
+    "Every 10 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Fetch Crowd Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Crowd Data": {
+      "main": [
+        [
+          {
+            "node": "Has Incidents?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Incidents?": {
+      "main": [
+        [
+          {
+            "node": "Split Incidents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Split Incidents": {
       "main": [
         [
           {
@@ -76,7 +163,7 @@
       ]
     }
   },
-  "active": false,
+  "active": true,
   "settings": {
     "executionOrder": "v1"
   },
