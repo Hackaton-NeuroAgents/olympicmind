@@ -1,0 +1,144 @@
+{
+  "venues": [
+    {
+      "id": "v1",
+      "name": "Milano San Siro Stadium",
+      "lat": 45.4781,
+      "lng": 9.1239,
+      "crowd_level": 93,
+      "status": "HIGH",
+      "capacity": 80000,
+      "current": 73600
+    },
+    {
+      "id": "v2",
+      "name": "Santagiulia Ice Arena",
+      "lat": 45.4357,
+      "lng": 9.2458,
+      "crowd_level": 100,
+      "status": "HIGH",
+      "capacity": 15000,
+      "current": 6750
+    },
+    {
+      "id": "v3",
+      "name": "Rho Ice Hockey Arena",
+      "lat": 45.5197,
+      "lng": 9.0684,
+      "crowd_level": 100,
+      "status": "HIGH",
+      "capacity": 10000,
+      "current": 8500
+    },
+    {
+      "id": "v4",
+      "name": "Milano Speed Skating Stadium",
+      "lat": 45.4773,
+      "lng": 9.1239,
+      "crowd_level": 64,
+      "status": "MEDIUM",
+      "capacity": 8000,
+      "current": 2400
+    },
+    {
+      "id": "v5",
+      "name": "Milano Ice Skating Arena",
+      "lat": 45.4013,
+      "lng": 9.1462,
+      "crowd_level": 96,
+      "status": "HIGH",
+      "capacity": 12000,
+      "current": 7200
+    },
+    {
+      "id": "v6",
+      "name": "Tofane Skiing Centre",
+      "lat": 46.5405,
+      "lng": 12.1357,
+      "crowd_level": 91,
+      "status": "HIGH",
+      "capacity": 5000,
+      "current": 1250
+    },
+    {
+      "id": "v7",
+      "name": "Cortina Sliding Center",
+      "lat": 46.539,
+      "lng": 12.134,
+      "crowd_level": 90,
+      "status": "HIGH",
+      "capacity": 3000,
+      "current": 1200
+    },
+    {
+      "id": "v8",
+      "name": "Cortina Curling Stadium",
+      "lat": 46.541,
+      "lng": 12.136,
+      "crowd_level": 64,
+      "status": "MEDIUM",
+      "capacity": 2000,
+      "current": 300
+    },
+    {
+      "id": "v9",
+      "name": "Stelvio Ski Centre (Bormio)",
+      "lat": 46.4682,
+      "lng": 10.3725,
+      "crowd_level": 95,
+      "status": "HIGH",
+      "capacity": 8000,
+      "current": 4400
+    },
+    {
+      "id": "v10",
+      "name": "Livigno Snow Park",
+      "lat": 46.5386,
+      "lng": 10.1357,
+      "crowd_level": 87,
+      "status": "HIGH",
+      "capacity": 10000,
+      "current": 8800
+    },
+    {
+      "id": "v11",
+      "name": "Predazzo Ski Jumping",
+      "lat": 46.3122,
+      "lng": 11.6025,
+      "crowd_level": 66,
+      "status": "MEDIUM",
+      "capacity": 6000,
+      "current": 3900
+    },
+    {
+      "id": "v12",
+      "name": "Tesero Cross-Country",
+      "lat": 46.2892,
+      "lng": 11.5175,
+      "crowd_level": 90,
+      "status": "HIGH",
+      "capacity": 8000,
+      "current": 4000
+    },
+    {
+      "id": "v13",
+      "name": "Antholz Biathlon Arena",
+      "lat": 46.885,
+      "lng": 12.1528,
+      "crowd_level": 85,
+      "status": "HIGH",
+      "capacity": 15000,
+      "current": 14250
+    },
+    {
+      "id": "v14",
+      "name": "Verona Olympic Arena",
+      "lat": 45.439,
+      "lng": 10.9928,
+      "crowd_level": 66,
+      "status": "MEDIUM",
+      "capacity": 15000,
+      "current": 3000
+    }
+  ]
+}

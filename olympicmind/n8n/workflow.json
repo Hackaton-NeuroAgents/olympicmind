@@ -1,0 +1,85 @@
+{
+  "name": "OlympicMind WhatsApp Alerts",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "olympicmind-alerts",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "e4b9b940-b6f7-4c74-8451-b8efd84e5a97",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        300,
+        400
+      ],
+      "webhookId": "olympicmind-alerts-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "sendTemplate",
+        "phoneNumberId": "YOUR_PHONE_ID_HERE",
+        "recipientPhoneNumber": "YOUR_DESTINATION_NUMBER_HERE",
+        "template": "hello_world",
+        "components": {
+          "component": [
+            {
+              "type": "body",
+              "parameters": {
+                "parameter": [
+                  {
+                    "type": "text",
+                    "text": "={{ $json.body.venue }}"
+                  },
+                  {
+                    "type": "text",
+                    "text": "={{ $json.body.crowd_level }}%"
+                  },
+                  {
+                    "type": "text",
+                    "text": "={{ $json.body.message }}"
+                  },
+                  {
+                    "type": "text",
+                    "text": "={{ $json.body.recommendation }}"
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "id": "7f09f06e-1d54-432d-88f5-1c3fc827f311",
+      "name": "WhatsApp",
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1,
+      "position": [
+        560,
+        400
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "f7ab2c88-e9f3-4f7b-99f6-17b20f9d9e4a",
+  "id": "n8n-olympicmind-workflow"
+}
