@@ -1,2 +1,4 @@
 ".env"
 backend/data/olympic_audit.db
+__pycache__/
+*.pyc
