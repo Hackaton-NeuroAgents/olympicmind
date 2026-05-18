@@ -1,0 +1,26 @@
+{
+  "teams": [
+    {
+      "id": "TEAM-001",
+      "name": "OlympicMind Demo Team",
+      "members": ["ATH001", "ATH002", "ATH003"]
+    }
+  ],
+  "audit_logs": {
+    "ATH001": [
+      {"date": "2026-05-18", "rpe": 6, "fatigue": 5, "stress": 4, "sleep": 8, "logistics": 9, "environment": 8},
+      {"date": "2026-05-17", "rpe": 7, "fatigue": 6, "stress": 5, "sleep": 7, "logistics": 8, "environment": 8},
+      {"date": "2026-05-16", "rpe": 5, "fatigue": 5, "stress": 3, "sleep": 8, "logistics": 9, "environment": 9}
+    ],
+    "ATH002": [
+      {"date": "2026-05-18", "rpe": 8, "fatigue": 7, "stress": 6, "sleep": 6, "logistics": 7, "environment": 7},
+      {"date": "2026-05-17", "rpe": 7, "fatigue": 7, "stress": 6, "sleep": 7, "logistics": 8, "environment": 7},
+      {"date": "2026-05-16", "rpe": 8, "fatigue": 6, "stress": 5, "sleep": 7, "logistics": 8, "environment": 8}
+    ],
+    "ATH003": [
+      {"date": "2026-05-18", "rpe": 5, "fatigue": 4, "stress": 4, "sleep": 9, "logistics": 9, "environment": 9},
+      {"date": "2026-05-17", "rpe": 6, "fatigue": 5, "stress": 5, "sleep": 8, "logistics": 9, "environment": 8},
+      {"date": "2026-05-16", "rpe": 5, "fatigue": 4, "stress": 3, "sleep": 9, "logistics": 9, "environment": 9}
+    ]
+  }
+}

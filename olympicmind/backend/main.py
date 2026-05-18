@@ -15,6 +15,7 @@ from athlete_profiles import (
     get_all_athletes, get_athlete, add_athlete,
     get_departure_advice, get_all_departure_alerts
 )
+from readiness_engine import get_team_readiness
 
 load_dotenv()
 
@@ -201,6 +202,15 @@ async def athlete_alerts():
     """Departure alerts for ALL athletes with upcoming events."""
     alerts = get_all_departure_alerts()
     return {"alerts": alerts, "count": len(alerts)}
+
+
+@app.get("/api/v1/teams/{team_id}/readiness")
+async def team_readiness(team_id: str):
+    """Aggregated readiness score for a team based on member audit logs."""
+    readiness = get_team_readiness(team_id)
+    if not readiness:
+        raise HTTPException(status_code=404, detail=f"Team {team_id} not found")
+    return readiness
 
 
 # ── Combined Dashboard ─────────────────────────────────────────────────────────
