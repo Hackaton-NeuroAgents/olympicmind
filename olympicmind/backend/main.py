@@ -1,8 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, field_validator
 import os
 import asyncio
+from datetime import datetime
+from typing import Dict
 from dotenv import load_dotenv
 from agent import chat_with_agent
 from crowd_monitor import get_crowd_data, simulate_crowd_change, check_for_incidents
@@ -13,7 +18,8 @@ from weather_client import get_venue_weather, get_all_venue_weather
 from news_monitor import get_incident_news, get_simulated_incidents
 from athlete_profiles import (
     get_all_athletes, get_athlete, add_athlete,
-    get_departure_advice, get_all_departure_alerts
+    get_departure_advice, get_all_departure_alerts,
+    add_audit_log, get_athlete_audit_history, AUDIT_DATE_FORMAT
 )
 
 load_dotenv()
@@ -48,6 +54,40 @@ class AthleteRequest(BaseModel):
     events: list = []
     hotel: str = ""
     hotel_coords: dict = {}
+
+
+class AuditRequest(BaseModel):
+    athlete_id: str
+    date: str
+    scores: Dict[str, int]
+
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value: str) -> str:
+        try:
+            datetime.strptime(value, AUDIT_DATE_FORMAT)
+        except ValueError:
+            raise ValueError(f"date must be in {AUDIT_DATE_FORMAT} format")
+        return value
+
+    @field_validator("scores")
+    @classmethod
+    def validate_scores(cls, value: Dict[str, int]) -> Dict[str, int]:
+        if not value:
+            raise ValueError("scores must contain at least one metric")
+        for metric, score in value.items():
+            if score < 1 or score > 10:
+                raise ValueError(f"{metric} score must be between 1 and 10 (inclusive)")
+        return value
+
+
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(request: Request, exc: RequestValidationError):
+    """Return HTTP 400 for invalid request payloads."""
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "Invalid request payload", "errors": jsonable_encoder(exc.errors())},
+    )
 
 
 # ── Startup ────────────────────────────────────────────────────────────────────
@@ -201,6 +241,32 @@ async def athlete_alerts():
     """Departure alerts for ALL athletes with upcoming events."""
     alerts = get_all_departure_alerts()
     return {"alerts": alerts, "count": len(alerts)}
+
+
+@app.post("/api/v1/audit")
+async def create_audit_log(req: AuditRequest):
+    """Save a daily audit log for an athlete."""
+    if not get_athlete(req.athlete_id):
+        raise HTTPException(status_code=404, detail=f"Athlete {req.athlete_id} not found")
+
+    audit_entry = add_audit_log(
+        {
+            "athlete_id": req.athlete_id,
+            "date": req.date,
+            "scores": req.scores,
+        }
+    )
+    return {"status": "created", "audit": audit_entry}
+
+
+@app.get("/api/v1/athletes/{athlete_id}/history")
+async def get_athlete_history(athlete_id: str):
+    """Return audit log history for one athlete sorted by most recent date."""
+    if not get_athlete(athlete_id):
+        raise HTTPException(status_code=404, detail=f"Athlete {athlete_id} not found")
+
+    history = get_athlete_audit_history(athlete_id)
+    return {"athlete_id": athlete_id, "history": history, "count": len(history)}
 
 
 # ── Combined Dashboard ─────────────────────────────────────────────────────────

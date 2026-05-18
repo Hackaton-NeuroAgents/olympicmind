@@ -13,6 +13,8 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 ATHLETES_FILE = os.path.join(DATA_DIR, "athletes.json")
+AUDIT_LOGS_FILE = os.path.join(DATA_DIR, "audit_logs.json")
+AUDIT_DATE_FORMAT = "%Y-%m-%d"
 
 # Default athletes for demo
 DEFAULT_ATHLETES = [
@@ -77,6 +79,24 @@ def _save_athletes(athletes: List[Dict[str, Any]]):
         json.dump(athletes, f, indent=2)
 
 
+def _load_audit_logs() -> List[Dict[str, Any]]:
+    """Load athlete audit logs from JSON file."""
+    try:
+        if os.path.exists(AUDIT_LOGS_FILE):
+            with open(AUDIT_LOGS_FILE, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Could not load audit logs file: {e}")
+    return []
+
+
+def _save_audit_logs(audit_logs: List[Dict[str, Any]]):
+    """Save athlete audit logs to JSON file."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(AUDIT_LOGS_FILE, "w") as f:
+        json.dump(audit_logs, f, indent=2)
+
+
 def get_all_athletes() -> List[Dict[str, Any]]:
     """Get all registered athletes."""
     return _load_athletes()
@@ -97,6 +117,54 @@ def add_athlete(athlete: Dict[str, Any]) -> Dict[str, Any]:
     athletes.append(athlete)
     _save_athletes(athletes)
     return athlete
+
+
+def add_audit_log(audit_log: Dict[str, Any]) -> Dict[str, Any]:
+    """Add a daily audit log entry."""
+    audit_log = dict(audit_log)
+    if "created_at" not in audit_log:
+        audit_log["created_at"] = datetime.utcnow().isoformat() + "Z"
+    audit_logs = _load_audit_logs()
+    audit_logs.append(audit_log)
+    _save_audit_logs(audit_logs)
+    return audit_log
+
+
+def _parse_audit_date(date_value: str) -> datetime:
+    """Parse audit log date in YYYY-MM-DD format."""
+    return datetime.strptime(date_value, AUDIT_DATE_FORMAT)
+
+
+def _parse_iso_datetime(dt_value: str) -> datetime:
+    """Parse ISO datetime string; raises ValueError for malformed values."""
+    return datetime.fromisoformat(dt_value)
+
+
+def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
+    """Get athlete audit logs sorted by date (most recent first)."""
+    audit_logs = _load_audit_logs()
+    sortable_logs = []
+
+    for entry in audit_logs:
+        if entry.get("athlete_id") != athlete_id:
+            continue
+        try:
+            audit_date = _parse_audit_date(entry["date"])
+            created_timestamp = _parse_iso_datetime(entry["created_at"])
+            sort_key = (audit_date, created_timestamp)
+        except KeyError as e:
+            logger.warning(f"Skipping audit entry for {athlete_id} missing field: {e}")
+            continue
+        except TypeError:
+            logger.warning(f"Skipping audit entry for {athlete_id}: failed converting date values to datetime")
+            continue
+        except ValueError:
+            logger.warning(f"Skipping audit entry for {athlete_id} with malformed date/timestamp format")
+            continue
+        sortable_logs.append((sort_key, entry))
+
+    sortable_logs.sort(key=lambda item: item[0], reverse=True)
+    return [entry for _, entry in sortable_logs]
 
 
 def get_athlete_next_event(athlete_id: str) -> Optional[Dict[str, Any]]:
