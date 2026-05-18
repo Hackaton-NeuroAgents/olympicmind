@@ -1,8 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from datetime import datetime, timezone
-import json
+from pydantic import BaseModel
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -21,7 +19,6 @@ from athlete_profiles import (
 load_dotenv()
 
 app = FastAPI(title="OlympicMind API", version="2.0.0")
-audit_file_lock = asyncio.Lock()
 
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173")
 allowed_origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
@@ -51,14 +48,6 @@ class AthleteRequest(BaseModel):
     events: list = []
     hotel: str = ""
     hotel_coords: dict = {}
-
-class AuditRequest(BaseModel):
-    athlete_id: str = "anonymous"
-    sleep_quality: int = Field(..., ge=1, le=10)
-    stress_level: int = Field(..., ge=1, le=10)
-    physical_fatigue: int = Field(..., ge=1, le=10)
-    followed_nutrition_plan: bool
-    has_jetlag_symptoms: bool
 
 
 # ── Startup ────────────────────────────────────────────────────────────────────
@@ -201,34 +190,6 @@ async def create_athlete(req: AthleteRequest):
         return {"status": "created", "athlete": result}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-
-@app.post("/api/v1/audit")
-async def submit_audit(req: AuditRequest):
-    """Receive athlete daily readiness metrics."""
-    audit_payload = req.model_dump()
-    audit_payload["submitted_at"] = datetime.now(timezone.utc).isoformat()
-
-    audit_file = os.path.join(os.path.dirname(__file__), "data", "audit_records.json")
-    os.makedirs(os.path.dirname(audit_file), exist_ok=True)
-
-    async with audit_file_lock:
-        existing_records = []
-        if os.path.exists(audit_file):
-            with open(audit_file, "r", encoding="utf-8") as file:
-                try:
-                    existing_records = json.load(file)
-                except json.JSONDecodeError:
-                    existing_records = []
-
-        existing_records.append(audit_payload)
-        with open(audit_file, "w", encoding="utf-8") as file:
-            json.dump(existing_records, file, indent=2)
-
-    return {
-        "status": "success",
-        "message": "Athlete audit received",
-        "audit": audit_payload
-    }
 
 @app.get("/athletes/{athlete_id}/departure")
 async def athlete_departure(athlete_id: str):

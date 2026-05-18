@@ -43,7 +43,6 @@ const AthleteCheckInForm = () => {
     setIsSubmitting(true);
     try {
       await axios.post(`${API_BASE_URL}/api/v1/audit`, {
-        athlete_id: localStorage.getItem('athleteId') || 'anonymous',
         sleep_quality: formData.sleepQuality,
         stress_level: formData.stressLevel,
         physical_fatigue: formData.physicalFatigue,
