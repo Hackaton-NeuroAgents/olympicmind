@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 ATHLETES_FILE = os.path.join(DATA_DIR, "athletes.json")
+AUDIT_LOGS_FILE = os.path.join(DATA_DIR, "audit_logs.json")
 
 # Default athletes for demo
 DEFAULT_ATHLETES = [
@@ -75,6 +76,24 @@ def _save_athletes(athletes: List[Dict[str, Any]]):
     os.makedirs(DATA_DIR, exist_ok=True)
     with open(ATHLETES_FILE, "w") as f:
         json.dump(athletes, f, indent=2)
+
+
+def _load_audit_logs() -> List[Dict[str, Any]]:
+    """Load audit logs from JSON file."""
+    try:
+        if os.path.exists(AUDIT_LOGS_FILE):
+            with open(AUDIT_LOGS_FILE, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Could not load audit logs file: {e}")
+    return []
+
+
+def _save_audit_logs(audit_logs: List[Dict[str, Any]]):
+    """Save audit logs to JSON file."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(AUDIT_LOGS_FILE, "w") as f:
+        json.dump(audit_logs, f, indent=2)
 
 
 def get_all_athletes() -> List[Dict[str, Any]]:
@@ -192,3 +211,69 @@ def get_all_departure_alerts() -> List[Dict[str, Any]]:
     urgency_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
     alerts.sort(key=lambda x: urgency_order.get(x.get("urgency", "LOW"), 3))
     return alerts
+
+
+def add_audit_log(audit: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate and persist a daily athlete audit log."""
+    athlete_id = str(audit.get("athlete_id", "")).strip()
+    date = str(audit.get("date", "")).strip()
+    scores = audit.get("scores")
+    notes = audit.get("notes", "")
+
+    if not athlete_id:
+        raise ValueError("athlete_id is required")
+    if not get_athlete(athlete_id):
+        raise LookupError(f"Athlete {athlete_id} not found")
+
+    if not date:
+        raise ValueError("date is required")
+    try:
+        datetime.strptime(date, "%Y-%m-%d")
+    except ValueError:
+        raise ValueError("date must be in YYYY-MM-DD format")
+
+    if not isinstance(scores, dict) or not scores:
+        raise ValueError("scores must be a non-empty object")
+
+    normalized_scores: Dict[str, int] = {}
+    for metric, score in scores.items():
+        metric_name = str(metric).strip()
+        if not metric_name:
+            raise ValueError("score metric names must be non-empty")
+        if not isinstance(score, int) or isinstance(score, bool):
+            raise ValueError(f"score '{metric_name}' must be an integer between 1 and 10")
+        if score < 1 or score > 10:
+            raise ValueError(f"score '{metric_name}' must be between 1 and 10")
+        normalized_scores[metric_name] = score
+
+    if notes is None:
+        notes = ""
+    if not isinstance(notes, str):
+        raise ValueError("notes must be a string")
+
+    audit_log = {
+        "athlete_id": athlete_id,
+        "date": date,
+        "scores": normalized_scores,
+        "notes": notes,
+        "created_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+    audit_logs = _load_audit_logs()
+    audit_logs.append(audit_log)
+    _save_audit_logs(audit_logs)
+    return audit_log
+
+
+def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
+    """Return all audit logs for an athlete sorted by most recent first."""
+    if not get_athlete(athlete_id):
+        raise LookupError(f"Athlete {athlete_id} not found")
+
+    audit_logs = _load_audit_logs()
+    history = [log for log in audit_logs if log.get("athlete_id") == athlete_id]
+    history.sort(
+        key=lambda log: (str(log.get("date", "")), str(log.get("created_at", ""))),
+        reverse=True,
+    )
+    return history

@@ -13,7 +13,8 @@ from weather_client import get_venue_weather, get_all_venue_weather
 from news_monitor import get_incident_news, get_simulated_incidents
 from athlete_profiles import (
     get_all_athletes, get_athlete, add_athlete,
-    get_departure_advice, get_all_departure_alerts
+    get_departure_advice, get_all_departure_alerts,
+    add_audit_log, get_athlete_audit_history
 )
 
 load_dotenv()
@@ -201,6 +202,28 @@ async def athlete_alerts():
     """Departure alerts for ALL athletes with upcoming events."""
     alerts = get_all_departure_alerts()
     return {"alerts": alerts, "count": len(alerts)}
+
+
+@app.post("/api/v1/audit")
+async def create_audit_log(req: dict):
+    """Save a daily audit log for an athlete."""
+    try:
+        result = add_audit_log(req)
+        return {"status": "created", "audit": result}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.get("/api/v1/athletes/{athlete_id}/history")
+async def athlete_history(athlete_id: str):
+    """Get athlete audit history sorted by most recent date."""
+    try:
+        history = get_athlete_audit_history(athlete_id)
+        return {"athlete_id": athlete_id, "history": history, "count": len(history)}
+    except LookupError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 # ── Combined Dashboard ─────────────────────────────────────────────────────────
