@@ -31,6 +31,20 @@ An autonomous AI agent that helps teams navigate Milan during the 2026 Winter Ol
    uvicorn main:app --reload --port 8000
    ```
 
+### Olympic Audit Database (SQLite)
+
+From the `backend` directory, initialize schema migrations and seed dummy data:
+
+```bash
+python database/migrate.py
+python database/seed.py
+```
+
+This creates `backend/data/olympic_audit.db` with:
+- `teams`
+- `athletes` (belongs to `teams`)
+- `audit_logs` (belongs to `athletes`)
+
 ### Frontend
 
 1. Navigate to the frontend directory:
