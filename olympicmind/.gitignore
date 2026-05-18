@@ -1,1 +1,2 @@
-".env" 
+".env"
+backend/data/olympic_audit.db
