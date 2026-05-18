@@ -146,12 +146,17 @@ def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
         if entry.get("athlete_id") != athlete_id:
             continue
         try:
-            sort_key = (
-                _parse_audit_date(entry["date"]),
-                _parse_iso_datetime(entry["created_at"]),
-            )
-        except (KeyError, TypeError, ValueError) as e:
-            logger.warning(f"Skipping invalid audit history entry for {athlete_id}: {e}")
+            audit_date = _parse_audit_date(entry["date"])
+            created_timestamp = _parse_iso_datetime(entry["created_at"])
+            sort_key = (audit_date, created_timestamp)
+        except KeyError as e:
+            logger.warning(f"Skipping audit entry for {athlete_id} missing field: {e}")
+            continue
+        except TypeError:
+            logger.warning(f"Skipping audit entry for {athlete_id} with invalid value types")
+            continue
+        except ValueError:
+            logger.warning(f"Skipping audit entry for {athlete_id} with malformed date/timestamp format")
             continue
         sortable_logs.append((sort_key, entry))
 
