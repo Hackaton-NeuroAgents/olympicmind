@@ -63,8 +63,8 @@ def _inverse_score(value: Any) -> float:
 def _category_score(log: Dict[str, Any]) -> float:
     physical = (_inverse_score(log.get("rpe")) + _inverse_score(log.get("fatigue"))) / 2
     mental = (_inverse_score(log.get("stress")) + _normalize_0_to_100(log.get("sleep"))) / 2
-    logistics_environment = (_normalize_0_to_100(log.get("logistics")) + _normalize_0_to_100(log.get("environment"))) / 2
-    return (physical * 0.4) + (mental * 0.4) + (logistics_environment * 0.2)
+    contextual = (_normalize_0_to_100(log.get("logistics")) + _normalize_0_to_100(log.get("environment"))) / 2
+    return (physical * 0.4) + (mental * 0.4) + (contextual * 0.2)
 
 
 def calculate_athlete_readiness_score(audit_logs: List[Dict[str, Any]]) -> float:
