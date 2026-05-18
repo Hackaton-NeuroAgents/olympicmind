@@ -1,10 +1,13 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, ValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, field_validator
 import os
 import asyncio
 from datetime import datetime, timezone
-from typing import Any, Dict
+from typing import Dict
 from dotenv import load_dotenv
 from agent import chat_with_agent
 from crowd_monitor import get_crowd_data, simulate_crowd_change, check_for_incidents
@@ -58,27 +61,30 @@ class AuditRequest(BaseModel):
     date: str
     scores: Dict[str, int]
 
+    @field_validator("date")
+    @classmethod
+    def validate_date(cls, value: str) -> str:
+        datetime.strptime(value, AUDIT_DATE_FORMAT)
+        return value
 
-def _validate_audit_request(payload: Dict[str, Any]) -> AuditRequest:
-    """Validate payload for athlete daily audit log."""
-    try:
-        req = AuditRequest(**payload)
-    except ValidationError:
-        raise HTTPException(status_code=400, detail="Invalid audit request payload")
+    @field_validator("scores")
+    @classmethod
+    def validate_scores(cls, value: Dict[str, int]) -> Dict[str, int]:
+        if not value:
+            raise ValueError("scores must contain at least one metric")
+        for metric, score in value.items():
+            if score < 1 or score > 10:
+                raise ValueError(f"{metric} score must be between 1 and 10 (inclusive)")
+        return value
 
-    if not req.scores:
-        raise HTTPException(status_code=400, detail="scores must contain at least one metric")
 
-    try:
-        datetime.strptime(req.date, AUDIT_DATE_FORMAT)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
-
-    for metric, score in req.scores.items():
-        if score < 1 or score > 10:
-            raise HTTPException(status_code=400, detail=f"{metric} score must be between 1 and 10 (inclusive)")
-
-    return req
+@app.exception_handler(RequestValidationError)
+async def handle_validation_error(request: Request, exc: RequestValidationError):
+    """Return HTTP 400 for invalid request payloads."""
+    return JSONResponse(
+        status_code=400,
+        content={"detail": "Invalid request payload", "errors": jsonable_encoder(exc.errors())},
+    )
 
 
 # ── Startup ────────────────────────────────────────────────────────────────────
@@ -235,9 +241,8 @@ async def athlete_alerts():
 
 
 @app.post("/api/v1/audit")
-async def create_audit_log(payload: Dict[str, Any]):
+async def create_audit_log(req: AuditRequest):
     """Save a daily audit log for an athlete."""
-    req = _validate_audit_request(payload)
     if not get_athlete(req.athlete_id):
         raise HTTPException(status_code=404, detail=f"Athlete {req.athlete_id} not found")
 

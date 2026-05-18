@@ -127,7 +127,7 @@ def add_audit_log(audit_log: Dict[str, Any]) -> Dict[str, Any]:
     return audit_log
 
 
-def _parse_iso_date(date_value: str) -> datetime:
+def _parse_audit_date(date_value: str) -> datetime:
     """Parse YYYY-MM-DD date."""
     return datetime.strptime(date_value, AUDIT_DATE_FORMAT)
 
@@ -143,7 +143,7 @@ def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
     athlete_logs = [entry for entry in audit_logs if entry.get("athlete_id") == athlete_id]
     athlete_logs.sort(
         key=lambda item: (
-            _parse_iso_date(item["date"]),
+            _parse_audit_date(item["date"]),
             _parse_iso_datetime(item["created_at"]),
         ),
         reverse=True,
