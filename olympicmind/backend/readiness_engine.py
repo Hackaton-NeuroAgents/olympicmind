@@ -45,6 +45,12 @@ def _parse_date(value: str) -> datetime:
 
 
 def _normalize_0_to_100(value: Any) -> float:
+    """Normalize metric values to a 0-100 readiness scale.
+
+    Audit entries are expected to use either a 0-10 scale (wellness style)
+    or a direct 0-100 score. A value of 10 is treated as the top of a 0-10
+    scale and is normalized to 100.
+    """
     if value is None:
         return 0.0
     try:
