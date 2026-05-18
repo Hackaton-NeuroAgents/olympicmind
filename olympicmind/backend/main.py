@@ -76,7 +76,7 @@ def _validate_audit_request(payload: Dict[str, Any]) -> AuditRequest:
 
     for metric, score in req.scores.items():
         if score < 1 or score > 10:
-            raise HTTPException(status_code=400, detail=f"{metric} score must be between 1 and 10")
+            raise HTTPException(status_code=400, detail=f"{metric} score must be between 1 and 10 (inclusive)")
 
     return req
 

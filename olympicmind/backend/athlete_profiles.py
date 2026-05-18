@@ -142,8 +142,8 @@ def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
     athlete_logs = [entry for entry in audit_logs if entry.get("athlete_id") == athlete_id]
     athlete_logs.sort(
         key=lambda item: (
-            _parse_iso_date(item.get("date", "")),
-            _parse_iso_datetime(item.get("created_at", "")),
+            _parse_iso_date(item["date"]),
+            _parse_iso_datetime(item["created_at"]),
         ),
         reverse=True,
     )
