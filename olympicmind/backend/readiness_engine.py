@@ -5,6 +5,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 READINESS_DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "readiness_audit_logs.json")
 TEN_POINT_SCALE = "0-10"
+PHYSICAL_WEIGHT = 0.4
+MENTAL_WEIGHT = 0.4
+CONTEXTUAL_WEIGHT = 0.2
 
 DEFAULT_READINESS_DATA = {
     "teams": [
@@ -67,10 +70,23 @@ def _inverse_score(value: Any, scale: str = TEN_POINT_SCALE) -> float:
 
 
 def _category_score(log: Dict[str, Any]) -> float:
-    physical = (_inverse_score(log.get("rpe"), scale=TEN_POINT_SCALE) + _inverse_score(log.get("fatigue"), scale=TEN_POINT_SCALE)) / 2
-    mental = (_inverse_score(log.get("stress"), scale=TEN_POINT_SCALE) + _normalize_0_to_100(log.get("sleep"), scale=TEN_POINT_SCALE)) / 2
-    contextual = (_normalize_0_to_100(log.get("logistics"), scale=TEN_POINT_SCALE) + _normalize_0_to_100(log.get("environment"), scale=TEN_POINT_SCALE)) / 2
-    return (physical * 0.4) + (mental * 0.4) + (contextual * 0.2)
+    physical_rpe = _inverse_score(log.get("rpe"), scale=TEN_POINT_SCALE)
+    physical_fatigue = _inverse_score(log.get("fatigue"), scale=TEN_POINT_SCALE)
+    physical = (physical_rpe + physical_fatigue) / 2
+
+    mental_stress = _inverse_score(log.get("stress"), scale=TEN_POINT_SCALE)
+    mental_sleep = _normalize_0_to_100(log.get("sleep"), scale=TEN_POINT_SCALE)
+    mental = (mental_stress + mental_sleep) / 2
+
+    contextual_logistics = _normalize_0_to_100(log.get("logistics"), scale=TEN_POINT_SCALE)
+    contextual_environment = _normalize_0_to_100(log.get("environment"), scale=TEN_POINT_SCALE)
+    contextual = (contextual_logistics + contextual_environment) / 2
+
+    return (
+        (physical * PHYSICAL_WEIGHT)
+        + (mental * MENTAL_WEIGHT)
+        + (contextual * CONTEXTUAL_WEIGHT)
+    )
 
 
 def calculate_athlete_readiness_score(audit_logs: List[Dict[str, Any]], round_result: bool = True) -> float:

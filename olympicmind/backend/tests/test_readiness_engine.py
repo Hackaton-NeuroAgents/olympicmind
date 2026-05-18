@@ -37,5 +37,7 @@ class ReadinessEngineTests(unittest.TestCase):
         ]
         score = calculate_athlete_readiness_score(logs)
         self.assertEqual(score, 42.67)
+
+
 if __name__ == "__main__":
     unittest.main()
