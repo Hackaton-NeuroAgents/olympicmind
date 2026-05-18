@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -48,6 +48,13 @@ class AthleteRequest(BaseModel):
     events: list = []
     hotel: str = ""
     hotel_coords: dict = {}
+
+class AuditRequest(BaseModel):
+    sleep_quality: int = Field(..., ge=1, le=10)
+    stress_level: int = Field(..., ge=1, le=10)
+    physical_fatigue: int = Field(..., ge=1, le=10)
+    followed_nutrition_plan: bool
+    has_jetlag_symptoms: bool
 
 
 # ── Startup ────────────────────────────────────────────────────────────────────
@@ -190,6 +197,15 @@ async def create_athlete(req: AthleteRequest):
         return {"status": "created", "athlete": result}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/api/v1/audit")
+async def submit_audit(req: AuditRequest):
+    """Receive athlete daily readiness metrics."""
+    return {
+        "status": "success",
+        "message": "Athlete audit received",
+        "audit": req.dict()
+    }
 
 @app.get("/athletes/{athlete_id}/departure")
 async def athlete_departure(athlete_id: str):
