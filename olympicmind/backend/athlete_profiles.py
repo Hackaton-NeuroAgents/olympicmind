@@ -127,21 +127,13 @@ def add_audit_log(audit_log: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _parse_iso_date(date_value: str) -> datetime:
-    """Parse YYYY-MM-DD date; fall back to oldest date for invalid values."""
-    try:
-        return datetime.strptime(str(date_value), "%Y-%m-%d")
-    except ValueError:
-        logger.warning(f"Invalid audit date value encountered: {date_value}")
-        return datetime.min
+    """Parse YYYY-MM-DD date."""
+    return datetime.strptime(str(date_value), "%Y-%m-%d")
 
 
 def _parse_iso_datetime(dt_value: str) -> datetime:
-    """Parse ISO datetime; fall back to oldest date for invalid values."""
-    try:
-        return datetime.fromisoformat(str(dt_value))
-    except ValueError:
-        logger.warning(f"Invalid audit created_at value encountered: {dt_value}")
-        return datetime.min
+    """Parse ISO datetime string."""
+    return datetime.fromisoformat(str(dt_value))
 
 
 def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
