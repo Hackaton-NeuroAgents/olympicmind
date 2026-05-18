@@ -118,6 +118,8 @@ const AthleteCheckInForm = () => {
 
       {toast && (
         <div
+          role="alert"
+          aria-live="polite"
           className={`fixed bottom-4 right-4 z-50 px-4 py-3 rounded-lg border text-sm shadow-2xl ${
             toast.type === 'success'
               ? 'bg-accent/20 border-accent/40 text-accent'
