@@ -128,12 +128,12 @@ def add_audit_log(audit_log: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _parse_audit_date(date_value: str) -> datetime:
-    """Parse YYYY-MM-DD date."""
+    """Parse audit log date in YYYY-MM-DD format."""
     return datetime.strptime(date_value, AUDIT_DATE_FORMAT)
 
 
 def _parse_iso_datetime(dt_value: str) -> datetime:
-    """Parse ISO datetime string."""
+    """Parse ISO datetime string; raises ValueError for malformed values."""
     return datetime.fromisoformat(dt_value)
 
 
