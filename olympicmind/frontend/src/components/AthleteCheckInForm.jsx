@@ -51,7 +51,7 @@ const AthleteCheckInForm = () => {
       });
       showToast('success', 'Check-in submitted successfully.');
     } catch (err) {
-      console.error('Failed to submit check-in:', err);
+      console.error('Failed to submit check-in:', err?.message || 'Unknown error');
       showToast('error', 'Unable to submit check-in. Please try again.');
     } finally {
       setIsSubmitting(false);
