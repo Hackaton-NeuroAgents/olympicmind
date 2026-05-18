@@ -44,12 +44,11 @@ def _parse_date(value: str) -> datetime:
     return datetime.strptime(value, "%Y-%m-%d")
 
 
-def _normalize_0_to_100(value: Any) -> float:
+def _normalize_0_to_100(value: Any, scale: str = "0-10") -> float:
     """Normalize metric values to a 0-100 readiness scale.
 
-    Audit entries are expected to use either a 0-10 scale (wellness style)
-    or a direct 0-100 score. A value of 10 is treated as the top of a 0-10
-    scale and is normalized to 100.
+    By default audit entries are expected to use a 0-10 scale.
+    Pass scale='0-100' to keep direct percentage-like inputs unchanged.
     """
     if value is None:
         return 0.0
@@ -57,24 +56,23 @@ def _normalize_0_to_100(value: Any) -> float:
         numeric = float(value)
     except (TypeError, ValueError):
         return 0.0
-    if 0 <= numeric <= 10:
-        # Audit logs may use either 0-10 wellness scales or direct 0-100 scores.
+    if scale == "0-10":
         numeric = numeric * 10
     return max(0.0, min(100.0, numeric))
 
 
-def _inverse_score(value: Any) -> float:
-    return 100.0 - _normalize_0_to_100(value)
+def _inverse_score(value: Any, scale: str = "0-10") -> float:
+    return 100.0 - _normalize_0_to_100(value, scale=scale)
 
 
 def _category_score(log: Dict[str, Any]) -> float:
-    physical = (_inverse_score(log.get("rpe")) + _inverse_score(log.get("fatigue"))) / 2
-    mental = (_inverse_score(log.get("stress")) + _normalize_0_to_100(log.get("sleep"))) / 2
-    contextual = (_normalize_0_to_100(log.get("logistics")) + _normalize_0_to_100(log.get("environment"))) / 2
+    physical = (_inverse_score(log.get("rpe"), scale="0-10") + _inverse_score(log.get("fatigue"), scale="0-10")) / 2
+    mental = (_inverse_score(log.get("stress"), scale="0-10") + _normalize_0_to_100(log.get("sleep"), scale="0-10")) / 2
+    contextual = (_normalize_0_to_100(log.get("logistics"), scale="0-10") + _normalize_0_to_100(log.get("environment"), scale="0-10")) / 2
     return (physical * 0.4) + (mental * 0.4) + (contextual * 0.2)
 
 
-def calculate_athlete_readiness_score(audit_logs: List[Dict[str, Any]]) -> float:
+def calculate_athlete_readiness_score(audit_logs: List[Dict[str, Any]], round_result: bool = True) -> float:
     if not audit_logs:
         return 0.0
 
@@ -85,19 +83,21 @@ def calculate_athlete_readiness_score(audit_logs: List[Dict[str, Any]]) -> float
     valid_logs.sort(key=lambda log: _parse_date(log["date"]), reverse=True)
     recent_logs = valid_logs[:3]
     average = sum(_category_score(log) for log in recent_logs) / len(recent_logs)
-    return round(average, 2)
+    return round(average, 2) if round_result else average
 
 
 def calculate_team_readiness(team_members: List[str], audit_logs_by_athlete: Dict[str, List[Dict[str, Any]]]) -> Tuple[float, List[Dict[str, Any]]]:
     athlete_scores: List[Dict[str, Any]] = []
+    raw_athlete_scores: List[float] = []
     for athlete_id in team_members:
-        score = calculate_athlete_readiness_score(audit_logs_by_athlete.get(athlete_id, []))
-        athlete_scores.append({"athlete_id": athlete_id, "readiness_score": score})
+        raw_score = calculate_athlete_readiness_score(audit_logs_by_athlete.get(athlete_id, []), round_result=False)
+        raw_athlete_scores.append(raw_score)
+        athlete_scores.append({"athlete_id": athlete_id, "readiness_score": round(raw_score, 2)})
 
     if not athlete_scores:
         return 0.0, []
 
-    team_score = round(sum(athlete["readiness_score"] for athlete in athlete_scores) / len(athlete_scores), 2)
+    team_score = round(sum(raw_athlete_scores) / len(raw_athlete_scores), 2)
     return team_score, athlete_scores
 
 
