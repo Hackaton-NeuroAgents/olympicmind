@@ -156,7 +156,7 @@ def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
             logger.warning(f"Skipping audit entry for {athlete_id} missing field: {e}")
             continue
         except TypeError:
-            logger.warning(f"Skipping audit entry for {athlete_id}: invalid value types in date or created_at fields")
+            logger.warning(f"Skipping audit entry for {athlete_id}: failed converting date values to datetime")
             continue
         except ValueError:
             logger.warning(f"Skipping audit entry for {athlete_id} with malformed date/timestamp format")
