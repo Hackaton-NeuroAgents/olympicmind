@@ -1,89 +1,167 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import MapView from './MapView';
-import ChatInterface from './ChatInterface';
-import AlertPanel from './AlertPanel';
-import RoutePlanner from './RoutePlanner';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const POLLING_INTERVAL_MS = Number(import.meta.env.VITE_TEAM_READINESS_POLL_MS) || 15000;
+const CRITICAL_THRESHOLD = 50;
+const HIGH_SCORE_THRESHOLD = 80;
+const PERCENTAGE_TO_DEGREES = 3.6;
+
+const mockAthletes = [
+  { id: 1, name: 'Luca Bianchi', discipline: '100m Sprint', latestScore: 87 },
+  { id: 2, name: 'Giulia Rossi', discipline: 'Swimming', latestScore: 78 },
+  { id: 3, name: 'Marco Esposito', discipline: 'Cycling', latestScore: 46 },
+  { id: 4, name: 'Sara Conti', discipline: 'Gymnastics', latestScore: 92 },
+  { id: 5, name: 'Davide Romano', discipline: 'Judo', latestScore: 58 },
+];
+
+const getScoreColor = (score) => {
+  if (score > HIGH_SCORE_THRESHOLD) return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30';
+  if (score < CRITICAL_THRESHOLD) return 'text-red-400 bg-red-400/10 border-red-400/30';
+  return 'text-amber-300 bg-amber-400/10 border-amber-400/30';
+};
+
+const normalizeAthletes = (items) =>
+  items
+    .map((athlete, index) => {
+      const parsedScore = Number(athlete?.latestScore);
+      if (!Number.isFinite(parsedScore)) return null;
+      return {
+        id: athlete?.id ?? `${athlete?.name || 'athlete'}-${athlete?.discipline || 'unknown'}-${index}`,
+        name: athlete?.name || 'Unknown athlete',
+        discipline: athlete?.discipline || 'Unknown discipline',
+        latestScore: Math.max(0, Math.min(100, parsedScore)),
+      };
+    })
+    .filter(Boolean);
 
 const Dashboard = () => {
-  const [crowdData, setCrowdData] = useState({ venues: [] });
-  const [incidents, setIncidents] = useState([]);
+  const [athletes, setAthletes] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Poll backend for crowd updates
   useEffect(() => {
-    const fetchCrowdData = async () => {
+    let isMounted = true;
+
+    const fetchTeamData = async () => {
       try {
-        const res = await axios.get(`${API_BASE_URL}/crowd`);
-        setCrowdData(res.data.crowd_data);
-        setIncidents(res.data.incidents);
-        setLoading(false);
+        const res = await axios.get(`${API_BASE_URL}/team-readiness`);
+        const incomingAthletes = Array.isArray(res.data?.athletes) ? res.data.athletes : [];
+        const safeAthletes = normalizeAthletes(incomingAthletes);
+        if (isMounted) {
+          setAthletes(safeAthletes.length ? safeAthletes : mockAthletes);
+        }
       } catch (err) {
-        console.error("Error fetching crowd data:", err);
+        console.warn('Using mock team readiness data:', err);
+        if (isMounted) {
+          setAthletes(mockAthletes);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    fetchCrowdData();
-    const interval = setInterval(fetchCrowdData, 10000); // Poll every 10s
-    return () => clearInterval(interval);
+    fetchTeamData();
+    const interval = setInterval(fetchTeamData, POLLING_INTERVAL_MS);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
+  const teamAverageScore = athletes.length
+    ? Math.round(athletes.reduce((sum, athlete) => sum + athlete.latestScore, 0) / athletes.length)
+    : 0;
+  const criticalAlerts = athletes.filter((athlete) => athlete.latestScore < CRITICAL_THRESHOLD).length;
+  const progressStyle = {
+    background: `conic-gradient(#10B981 ${teamAverageScore * PERCENTAGE_TO_DEGREES}deg, rgba(255, 255, 255, 0.12) 0deg)`,
+  };
+  const averageSummary =
+    teamAverageScore >= HIGH_SCORE_THRESHOLD
+      ? 'Strong form'
+      : teamAverageScore >= CRITICAL_THRESHOLD
+        ? 'Moderate readiness'
+        : 'Needs attention';
+
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-12 gap-6">
-      
-      {/* Left Column: Map and Alerts */}
-      <div className="lg:col-span-8 flex flex-col gap-6">
-        <div className="glass rounded-2xl overflow-hidden relative shadow-2xl flex flex-col h-[500px]">
-          <div className="px-5 py-4 border-b border-white/5 bg-surface/40 flex justify-between items-center z-10">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <span className="text-xl">🗺️</span> Milan Venues Live Map
-            </h2>
-            <div className="text-xs font-medium text-gray-400 bg-surface/60 px-2 py-1 rounded">Live Updates</div>
-          </div>
-          <div className="flex-1 bg-[#1a1a1a] relative z-0">
-            {!loading && <MapView venues={crowdData.venues} />}
+    <div className="w-full space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="glass rounded-2xl p-6 shadow-2xl">
+          <h2 className="text-lg font-semibold mb-4">Team Average Score</h2>
+          <div className="flex items-center gap-5">
+            <div
+              className="w-28 h-28 rounded-full p-2 shrink-0"
+              style={progressStyle}
+              role="progressbar"
+              aria-label="Team average score"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={teamAverageScore}
+            >
+              <div className="w-full h-full rounded-full bg-background/95 border border-white/10 flex items-center justify-center">
+                <span className="text-2xl font-bold">{teamAverageScore}%</span>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm text-gray-400">Global readiness overview</p>
+              <p className="text-xl font-semibold text-emerald-400">{averageSummary}</p>
+            </div>
           </div>
         </div>
 
-        <div className="glass rounded-2xl overflow-hidden shadow-2xl flex flex-col min-h-[300px]">
-          <div className="px-5 py-3 border-b border-white/5 bg-surface/40">
-            <h2 className="text-md font-semibold flex items-center gap-2">
-              <span className="text-lg">🚨</span> Active Alerts & Incidents
-            </h2>
+        <div className="glass rounded-2xl p-6 shadow-2xl">
+          <h2 className="text-lg font-semibold mb-4">Critical Alerts</h2>
+          <div className="flex items-end gap-3">
+            <p className="text-4xl font-bold text-red-400">{criticalAlerts}</p>
+            <p className="text-sm text-gray-400 pb-1">Athletes below {CRITICAL_THRESHOLD}% readiness</p>
           </div>
-          <div className="flex-1 overflow-y-auto p-4">
-            <AlertPanel incidents={incidents} />
+          <div className="mt-5 text-sm text-gray-300">
+            {criticalAlerts === 0 ? 'No athletes currently in critical state.' : 'Immediate coach review recommended.'}
           </div>
         </div>
       </div>
 
-      {/* Right Column: AI Chat and Routing */}
-      <div className="lg:col-span-4 flex flex-col gap-6">
-        
-        <div className="glass rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[500px]">
-          <div className="px-5 py-4 border-b border-white/5 bg-surface/40">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <span className="text-xl">🤖</span> Ask OlympicMind
-            </h2>
-          </div>
-          <div className="flex-1 overflow-hidden relative">
-            <ChatInterface />
-          </div>
+      <div className="glass rounded-2xl overflow-hidden shadow-2xl">
+        <div className="px-5 py-4 border-b border-white/5 bg-surface/40">
+          <h2 className="text-lg font-semibold">Team Athletes Readiness</h2>
         </div>
-
-        <div className="glass rounded-2xl overflow-hidden shadow-2xl flex flex-col">
-          <div className="px-5 py-4 border-b border-white/5 bg-surface/40">
-            <h2 className="text-lg font-semibold flex items-center gap-2">
-              <span className="text-xl">📍</span> Smart Route Planner
-            </h2>
-          </div>
-          <div className="p-4">
-            <RoutePlanner venues={crowdData.venues} />
-          </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[560px]">
+            <thead className="text-left text-xs uppercase tracking-wider text-gray-400 bg-surface/30">
+              <tr>
+                <th className="px-5 py-3 font-medium">Athlete</th>
+                <th className="px-5 py-3 font-medium">Discipline</th>
+                <th className="px-5 py-3 font-medium">Latest Score</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td className="px-5 py-4 text-gray-400" colSpan={3}>
+                    Loading team readiness...
+                  </td>
+                </tr>
+              ) : (
+                athletes.map((athlete) => (
+                  <tr
+                    key={athlete.id}
+                    tabIndex={0}
+                    className="border-t border-white/5 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-inset"
+                  >
+                    <td className="px-5 py-3 font-medium">{athlete.name}</td>
+                    <td className="px-5 py-3 text-gray-300">{athlete.discipline}</td>
+                    <td className="px-5 py-3">
+                      <span className={`inline-flex items-center justify-center px-2.5 py-1 rounded-full border text-sm font-semibold ${getScoreColor(athlete.latestScore)}`}>
+                        {athlete.latestScore}%
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-
       </div>
     </div>
   );
