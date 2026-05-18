@@ -131,6 +131,7 @@ def _parse_iso_date(date_value: str) -> datetime:
     try:
         return datetime.strptime(date_value, "%Y-%m-%d")
     except Exception:
+        logger.warning(f"Invalid audit date value encountered: {date_value}")
         return datetime.min
 
 
@@ -139,6 +140,7 @@ def _parse_iso_datetime(dt_value: str) -> datetime:
     try:
         return datetime.fromisoformat(dt_value)
     except Exception:
+        logger.warning(f"Invalid audit created_at value encountered: {dt_value}")
         return datetime.min
 
 

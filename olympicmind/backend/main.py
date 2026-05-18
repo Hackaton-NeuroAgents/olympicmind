@@ -63,8 +63,8 @@ def _validate_audit_request(payload: Dict[str, Any]) -> AuditRequest:
     """Validate payload for athlete daily audit log."""
     try:
         req = AuditRequest(**payload)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid audit request payload")
 
     if not req.scores:
         raise HTTPException(status_code=400, detail="scores must contain at least one metric")
