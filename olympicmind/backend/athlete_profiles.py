@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 ATHLETES_FILE = os.path.join(DATA_DIR, "athletes.json")
 AUDIT_LOGS_FILE = os.path.join(DATA_DIR, "audit_logs.json")
+AUDIT_DATE_FORMAT = "%Y-%m-%d"
 
 # Default athletes for demo
 DEFAULT_ATHLETES = [
@@ -128,12 +129,12 @@ def add_audit_log(audit_log: Dict[str, Any]) -> Dict[str, Any]:
 
 def _parse_iso_date(date_value: str) -> datetime:
     """Parse YYYY-MM-DD date."""
-    return datetime.strptime(str(date_value), "%Y-%m-%d")
+    return datetime.strptime(date_value, AUDIT_DATE_FORMAT)
 
 
 def _parse_iso_datetime(dt_value: str) -> datetime:
     """Parse ISO datetime string."""
-    return datetime.fromisoformat(str(dt_value))
+    return datetime.fromisoformat(dt_value)
 
 
 def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:

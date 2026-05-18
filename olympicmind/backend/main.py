@@ -16,7 +16,7 @@ from news_monitor import get_incident_news, get_simulated_incidents
 from athlete_profiles import (
     get_all_athletes, get_athlete, add_athlete,
     get_departure_advice, get_all_departure_alerts,
-    add_audit_log, get_athlete_audit_history
+    add_audit_log, get_athlete_audit_history, AUDIT_DATE_FORMAT
 )
 
 load_dotenv()
@@ -70,7 +70,7 @@ def _validate_audit_request(payload: Dict[str, Any]) -> AuditRequest:
         raise HTTPException(status_code=400, detail="scores must contain at least one metric")
 
     try:
-        datetime.strptime(req.date, "%Y-%m-%d")
+        datetime.strptime(req.date, AUDIT_DATE_FORMAT)
     except ValueError:
         raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
 
