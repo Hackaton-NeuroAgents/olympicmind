@@ -165,6 +165,8 @@ Frontend runs at: `http://localhost:5173`
 | `POST` | `/chat` | Chat with AI agent (message + history) |
 | `GET` | `/crowd` | Live crowd levels + incidents at all venues |
 | `POST` | `/route` | Get smart route recommendation between venues |
+| `POST` | `/api/v1/audit` | Save a daily athlete audit log (scores 1-10) |
+| `GET` | `/api/v1/athletes/{id}/history` | Fetch athlete audit history (most recent first) |
 
 ### Example: Chat Request
 ```json
