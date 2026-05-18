@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 READINESS_DATA_FILE = os.path.join(os.path.dirname(__file__), "data", "readiness_audit_logs.json")
+TEN_POINT_SCALE = "0-10"
 
 DEFAULT_READINESS_DATA = {
     "teams": [
@@ -44,7 +45,7 @@ def _parse_date(value: str) -> datetime:
     return datetime.strptime(value, "%Y-%m-%d")
 
 
-def _normalize_0_to_100(value: Any, scale: str = "0-10") -> float:
+def _normalize_0_to_100(value: Any, scale: str = TEN_POINT_SCALE) -> float:
     """Normalize metric values to a 0-100 readiness scale.
 
     By default audit entries are expected to use a 0-10 scale.
@@ -56,19 +57,19 @@ def _normalize_0_to_100(value: Any, scale: str = "0-10") -> float:
         numeric = float(value)
     except (TypeError, ValueError):
         return 0.0
-    if scale == "0-10":
+    if scale == TEN_POINT_SCALE:
         numeric = numeric * 10
     return max(0.0, min(100.0, numeric))
 
 
-def _inverse_score(value: Any, scale: str = "0-10") -> float:
+def _inverse_score(value: Any, scale: str = TEN_POINT_SCALE) -> float:
     return 100.0 - _normalize_0_to_100(value, scale=scale)
 
 
 def _category_score(log: Dict[str, Any]) -> float:
-    physical = (_inverse_score(log.get("rpe"), scale="0-10") + _inverse_score(log.get("fatigue"), scale="0-10")) / 2
-    mental = (_inverse_score(log.get("stress"), scale="0-10") + _normalize_0_to_100(log.get("sleep"), scale="0-10")) / 2
-    contextual = (_normalize_0_to_100(log.get("logistics"), scale="0-10") + _normalize_0_to_100(log.get("environment"), scale="0-10")) / 2
+    physical = (_inverse_score(log.get("rpe"), scale=TEN_POINT_SCALE) + _inverse_score(log.get("fatigue"), scale=TEN_POINT_SCALE)) / 2
+    mental = (_inverse_score(log.get("stress"), scale=TEN_POINT_SCALE) + _normalize_0_to_100(log.get("sleep"), scale=TEN_POINT_SCALE)) / 2
+    contextual = (_normalize_0_to_100(log.get("logistics"), scale=TEN_POINT_SCALE) + _normalize_0_to_100(log.get("environment"), scale=TEN_POINT_SCALE)) / 2
     return (physical * 0.4) + (mental * 0.4) + (contextual * 0.2)
 
 
