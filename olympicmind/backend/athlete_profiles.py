@@ -140,15 +140,23 @@ def _parse_iso_datetime(dt_value: str) -> datetime:
 def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
     """Get athlete audit logs sorted by date (most recent first)."""
     audit_logs = _load_audit_logs()
-    athlete_logs = [entry for entry in audit_logs if entry.get("athlete_id") == athlete_id]
-    athlete_logs.sort(
-        key=lambda item: (
-            _parse_audit_date(item["date"]),
-            _parse_iso_datetime(item["created_at"]),
-        ),
-        reverse=True,
-    )
-    return athlete_logs
+    sortable_logs = []
+
+    for entry in audit_logs:
+        if entry.get("athlete_id") != athlete_id:
+            continue
+        try:
+            sort_key = (
+                _parse_audit_date(entry["date"]),
+                _parse_iso_datetime(entry["created_at"]),
+            )
+        except (KeyError, TypeError, ValueError) as e:
+            logger.warning(f"Skipping invalid audit history entry for {athlete_id}: {e}")
+            continue
+        sortable_logs.append((sort_key, entry))
+
+    sortable_logs.sort(key=lambda item: item[0], reverse=True)
+    return [entry for _, entry in sortable_logs]
 
 
 def get_athlete_next_event(athlete_id: str) -> Optional[Dict[str, Any]]:

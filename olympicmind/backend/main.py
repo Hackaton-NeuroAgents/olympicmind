@@ -64,7 +64,10 @@ class AuditRequest(BaseModel):
     @field_validator("date")
     @classmethod
     def validate_date(cls, value: str) -> str:
-        datetime.strptime(value, AUDIT_DATE_FORMAT)
+        try:
+            datetime.strptime(value, AUDIT_DATE_FORMAT)
+        except ValueError:
+            raise ValueError(f"date must be in {AUDIT_DATE_FORMAT} format")
         return value
 
     @field_validator("scores")
