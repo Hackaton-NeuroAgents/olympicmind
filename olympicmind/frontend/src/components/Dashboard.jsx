@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const POLLING_INTERVAL_MS = Number(import.meta.env.VITE_TEAM_READINESS_POLL_MS) || 15000;
 const CRITICAL_THRESHOLD = 50;
 const HIGH_SCORE_THRESHOLD = 80;
 const PERCENTAGE_TO_DEGREES = 3.6;
@@ -26,7 +27,7 @@ const normalizeAthletes = (items) =>
       const parsedScore = Number(athlete?.latestScore);
       if (!Number.isFinite(parsedScore)) return null;
       return {
-        id: athlete?.id ?? `athlete-${index}`,
+        id: athlete?.id ?? `${athlete?.name || 'athlete'}-${athlete?.discipline || 'unknown'}-${index}`,
         name: athlete?.name || 'Unknown athlete',
         discipline: athlete?.discipline || 'Unknown discipline',
         latestScore: Math.max(0, Math.min(100, parsedScore)),
@@ -62,7 +63,7 @@ const Dashboard = () => {
     };
 
     fetchTeamData();
-    const interval = setInterval(fetchTeamData, 15000);
+    const interval = setInterval(fetchTeamData, POLLING_INTERVAL_MS);
     return () => {
       isMounted = false;
       clearInterval(interval);
@@ -76,6 +77,12 @@ const Dashboard = () => {
   const progressStyle = {
     background: `conic-gradient(#10B981 ${teamAverageScore * PERCENTAGE_TO_DEGREES}deg, rgba(255, 255, 255, 0.12) 0deg)`,
   };
+  const averageSummary =
+    teamAverageScore >= HIGH_SCORE_THRESHOLD
+      ? 'Strong form'
+      : teamAverageScore >= CRITICAL_THRESHOLD
+        ? 'Moderate readiness'
+        : 'Needs attention';
 
   return (
     <div className="w-full space-y-6">
@@ -98,7 +105,7 @@ const Dashboard = () => {
             </div>
             <div className="space-y-1">
               <p className="text-sm text-gray-400">Global readiness overview</p>
-              <p className="text-xl font-semibold text-emerald-400">{teamAverageScore >= HIGH_SCORE_THRESHOLD ? 'Strong form' : 'Needs attention'}</p>
+              <p className="text-xl font-semibold text-emerald-400">{averageSummary}</p>
             </div>
           </div>
         </div>
