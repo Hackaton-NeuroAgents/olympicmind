@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 import json
 import os
 import asyncio
@@ -21,6 +21,7 @@ from athlete_profiles import (
 load_dotenv()
 
 app = FastAPI(title="OlympicMind API", version="2.0.0")
+audit_file_lock = asyncio.Lock()
 
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:5173")
 allowed_origins = [origin.strip() for origin in cors_origins.split(",") if origin.strip()]
@@ -205,20 +206,23 @@ async def create_athlete(req: AthleteRequest):
 async def submit_audit(req: AuditRequest):
     """Receive athlete daily readiness metrics."""
     audit_payload = req.model_dump()
-    audit_payload["submitted_at"] = datetime.utcnow().isoformat()
+    audit_payload["submitted_at"] = datetime.now(timezone.utc).isoformat()
 
     audit_file = os.path.join(os.path.dirname(__file__), "data", "audit_records.json")
-    existing_records = []
-    if os.path.exists(audit_file):
-        with open(audit_file, "r", encoding="utf-8") as file:
-            try:
-                existing_records = json.load(file)
-            except json.JSONDecodeError:
-                existing_records = []
+    os.makedirs(os.path.dirname(audit_file), exist_ok=True)
 
-    existing_records.append(audit_payload)
-    with open(audit_file, "w", encoding="utf-8") as file:
-        json.dump(existing_records, file, indent=2)
+    async with audit_file_lock:
+        existing_records = []
+        if os.path.exists(audit_file):
+            with open(audit_file, "r", encoding="utf-8") as file:
+                try:
+                    existing_records = json.load(file)
+                except json.JSONDecodeError:
+                    existing_records = []
+
+        existing_records.append(audit_payload)
+        with open(audit_file, "w", encoding="utf-8") as file:
+            json.dump(existing_records, file, indent=2)
 
     return {
         "status": "success",
