@@ -52,6 +52,7 @@ def _normalize_0_to_100(value: Any) -> float:
     except (TypeError, ValueError):
         return 0.0
     if 0 <= numeric <= 10:
+        # Audit logs may use either 0-10 wellness scales or direct 0-100 scores.
         numeric = numeric * 10
     return max(0.0, min(100.0, numeric))
 
