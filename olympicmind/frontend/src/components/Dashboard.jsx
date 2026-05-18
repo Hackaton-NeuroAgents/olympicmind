@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const CRITICAL_THRESHOLD = 50;
+const HIGH_SCORE_THRESHOLD = 80;
+const PERCENTAGE_TO_DEGREES = 3.6;
 
 const mockAthletes = [
   { id: 1, name: 'Luca Bianchi', discipline: '100m Sprint', latestScore: 87 },
@@ -12,8 +15,8 @@ const mockAthletes = [
 ];
 
 const getScoreColor = (score) => {
-  if (score > 80) return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30';
-  if (score < 50) return 'text-red-400 bg-red-400/10 border-red-400/30';
+  if (score > HIGH_SCORE_THRESHOLD) return 'text-emerald-400 bg-emerald-400/10 border-emerald-400/30';
+  if (score < CRITICAL_THRESHOLD) return 'text-red-400 bg-red-400/10 border-red-400/30';
   return 'text-amber-300 bg-amber-400/10 border-amber-400/30';
 };
 
@@ -22,30 +25,41 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchTeamData = async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/team-readiness`);
         const incomingAthletes = Array.isArray(res.data?.athletes) ? res.data.athletes : [];
-        setAthletes(incomingAthletes.length ? incomingAthletes : mockAthletes);
+        if (isMounted) {
+          setAthletes(incomingAthletes.length ? incomingAthletes : mockAthletes);
+        }
       } catch (err) {
         console.warn('Using mock team readiness data:', err);
-        setAthletes(mockAthletes);
+        if (isMounted) {
+          setAthletes(mockAthletes);
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchTeamData();
     const interval = setInterval(fetchTeamData, 15000);
-    return () => clearInterval(interval);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, []);
 
   const teamAverageScore = athletes.length
     ? Math.round(athletes.reduce((sum, athlete) => sum + athlete.latestScore, 0) / athletes.length)
     : 0;
-  const criticalAlerts = athletes.filter((athlete) => athlete.latestScore < 50).length;
+  const criticalAlerts = athletes.filter((athlete) => athlete.latestScore < CRITICAL_THRESHOLD).length;
   const progressStyle = {
-    background: `conic-gradient(#10B981 ${teamAverageScore * 3.6}deg, rgba(255, 255, 255, 0.12) 0deg)`,
+    background: `conic-gradient(#10B981 ${teamAverageScore * PERCENTAGE_TO_DEGREES}deg, rgba(255, 255, 255, 0.12) 0deg)`,
   };
 
   return (
@@ -66,7 +80,7 @@ const Dashboard = () => {
             </div>
             <div className="space-y-1">
               <p className="text-sm text-gray-400">Global readiness overview</p>
-              <p className="text-xl font-semibold text-emerald-400">{teamAverageScore >= 80 ? 'Strong form' : 'Needs attention'}</p>
+              <p className="text-xl font-semibold text-emerald-400">{teamAverageScore >= HIGH_SCORE_THRESHOLD ? 'Strong form' : 'Needs attention'}</p>
             </div>
           </div>
         </div>
@@ -75,7 +89,7 @@ const Dashboard = () => {
           <h2 className="text-lg font-semibold mb-4">Critical Alerts</h2>
           <div className="flex items-end gap-3">
             <p className="text-4xl font-bold text-red-400">{criticalAlerts}</p>
-            <p className="text-sm text-gray-400 pb-1">Athletes below 50% readiness</p>
+            <p className="text-sm text-gray-400 pb-1">Athletes below {CRITICAL_THRESHOLD}% readiness</p>
           </div>
           <div className="mt-5 text-sm text-gray-300">
             {criticalAlerts === 0 ? 'No athletes currently in critical state.' : 'Immediate coach review recommended.'}
