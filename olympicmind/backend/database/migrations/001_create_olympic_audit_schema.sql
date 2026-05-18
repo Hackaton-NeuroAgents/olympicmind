@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     stress_level INTEGER NOT NULL CHECK (stress_level BETWEEN 1 AND 10),
     fatigue_score INTEGER NOT NULL CHECK (fatigue_score BETWEEN 1 AND 10),
     nutrition_compliant INTEGER NOT NULL CHECK (nutrition_compliant IN (0, 1)),
-    jetlag_status TEXT NOT NULL,
+    jetlag_status TEXT NOT NULL CHECK (jetlag_status IN ('none', 'mild', 'moderate')),
     FOREIGN KEY (athlete_id) REFERENCES athletes(id) ON DELETE CASCADE,
     UNIQUE (athlete_id, date)
 );

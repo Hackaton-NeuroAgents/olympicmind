@@ -30,7 +30,7 @@ JETLAG_STATES = ["none", "mild", "moderate"]
 
 
 def _build_audit_logs() -> list[dict]:
-    start_date = date.today() - timedelta(days=6)
+    start_date = date(2025, 1, 1)
     logs: list[dict] = []
     log_id = 1
     for athlete in ATHLETES:
