@@ -4,6 +4,7 @@ import MapView from './MapView';
 import ChatInterface from './ChatInterface';
 import AlertPanel from './AlertPanel';
 import RoutePlanner from './RoutePlanner';
+import AthleteCheckInForm from './AthleteCheckInForm';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -81,6 +82,17 @@ const Dashboard = () => {
           </div>
           <div className="p-4">
             <RoutePlanner venues={crowdData.venues} />
+          </div>
+        </div>
+
+        <div className="glass rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+          <div className="px-5 py-4 border-b border-white/5 bg-surface/40">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <span className="text-xl">📝</span> Athlete Daily Check-in
+            </h2>
+          </div>
+          <div className="p-4">
+            <AthleteCheckInForm />
           </div>
         </div>
 
