@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 import os
 import asyncio
 from datetime import datetime, timezone
@@ -63,7 +63,7 @@ def _validate_audit_request(payload: Dict[str, Any]) -> AuditRequest:
     """Validate payload for athlete daily audit log."""
     try:
         req = AuditRequest(**payload)
-    except Exception:
+    except ValidationError:
         raise HTTPException(status_code=400, detail="Invalid audit request payload")
 
     if not req.scores:
