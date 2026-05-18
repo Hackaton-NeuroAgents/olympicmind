@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from datetime import datetime
+import json
 import os
 import asyncio
 from dotenv import load_dotenv
@@ -50,6 +52,7 @@ class AthleteRequest(BaseModel):
     hotel_coords: dict = {}
 
 class AuditRequest(BaseModel):
+    athlete_id: str = "anonymous"
     sleep_quality: int = Field(..., ge=1, le=10)
     stress_level: int = Field(..., ge=1, le=10)
     physical_fatigue: int = Field(..., ge=1, le=10)
@@ -201,10 +204,26 @@ async def create_athlete(req: AthleteRequest):
 @app.post("/api/v1/audit")
 async def submit_audit(req: AuditRequest):
     """Receive athlete daily readiness metrics."""
+    audit_payload = req.model_dump()
+    audit_payload["submitted_at"] = datetime.utcnow().isoformat()
+
+    audit_file = os.path.join(os.path.dirname(__file__), "data", "audit_records.json")
+    existing_records = []
+    if os.path.exists(audit_file):
+        with open(audit_file, "r", encoding="utf-8") as file:
+            try:
+                existing_records = json.load(file)
+            except json.JSONDecodeError:
+                existing_records = []
+
+    existing_records.append(audit_payload)
+    with open(audit_file, "w", encoding="utf-8") as file:
+        json.dump(existing_records, file, indent=2)
+
     return {
         "status": "success",
         "message": "Athlete audit received",
-        "audit": req.dict()
+        "audit": audit_payload
     }
 
 @app.get("/athletes/{athlete_id}/departure")
