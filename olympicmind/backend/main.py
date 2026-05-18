@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 import asyncio
+from datetime import datetime, timezone
+from typing import Any, Dict
 from dotenv import load_dotenv
 from agent import chat_with_agent
 from crowd_monitor import get_crowd_data, simulate_crowd_change, check_for_incidents
@@ -13,7 +15,8 @@ from weather_client import get_venue_weather, get_all_venue_weather
 from news_monitor import get_incident_news, get_simulated_incidents
 from athlete_profiles import (
     get_all_athletes, get_athlete, add_athlete,
-    get_departure_advice, get_all_departure_alerts
+    get_departure_advice, get_all_departure_alerts,
+    add_audit_log, get_athlete_audit_history
 )
 
 load_dotenv()
@@ -48,6 +51,34 @@ class AthleteRequest(BaseModel):
     events: list = []
     hotel: str = ""
     hotel_coords: dict = {}
+
+
+class AuditRequest(BaseModel):
+    athlete_id: str
+    date: str
+    scores: Dict[str, int]
+
+
+def _validate_audit_request(payload: Dict[str, Any]) -> AuditRequest:
+    """Validate payload for athlete daily audit log."""
+    try:
+        req = AuditRequest(**payload)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if not req.scores:
+        raise HTTPException(status_code=400, detail="scores must contain at least one metric")
+
+    try:
+        datetime.strptime(req.date, "%Y-%m-%d")
+    except ValueError:
+        raise HTTPException(status_code=400, detail="date must be in YYYY-MM-DD format")
+
+    for metric, score in req.scores.items():
+        if score < 1 or score > 10:
+            raise HTTPException(status_code=400, detail=f"{metric} score must be between 1 and 10")
+
+    return req
 
 
 # ── Startup ────────────────────────────────────────────────────────────────────
@@ -201,6 +232,34 @@ async def athlete_alerts():
     """Departure alerts for ALL athletes with upcoming events."""
     alerts = get_all_departure_alerts()
     return {"alerts": alerts, "count": len(alerts)}
+
+
+@app.post("/api/v1/audit")
+async def create_audit_log(payload: Dict[str, Any]):
+    """Save a daily audit log for an athlete."""
+    req = _validate_audit_request(payload)
+    if not get_athlete(req.athlete_id):
+        raise HTTPException(status_code=404, detail=f"Athlete {req.athlete_id} not found")
+
+    audit_entry = add_audit_log(
+        {
+            "athlete_id": req.athlete_id,
+            "date": req.date,
+            "scores": req.scores,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    return {"status": "created", "audit": audit_entry}
+
+
+@app.get("/api/v1/athletes/{athlete_id}/history")
+async def get_athlete_history(athlete_id: str):
+    """Return audit log history for one athlete sorted by most recent date."""
+    if not get_athlete(athlete_id):
+        raise HTTPException(status_code=404, detail=f"Athlete {athlete_id} not found")
+
+    history = get_athlete_audit_history(athlete_id)
+    return {"athlete_id": athlete_id, "history": history, "count": len(history)}
 
 
 # ── Combined Dashboard ─────────────────────────────────────────────────────────

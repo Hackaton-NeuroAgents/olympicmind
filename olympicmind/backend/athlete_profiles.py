@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
 ATHLETES_FILE = os.path.join(DATA_DIR, "athletes.json")
+AUDIT_LOGS_FILE = os.path.join(DATA_DIR, "audit_logs.json")
 
 # Default athletes for demo
 DEFAULT_ATHLETES = [
@@ -77,6 +78,24 @@ def _save_athletes(athletes: List[Dict[str, Any]]):
         json.dump(athletes, f, indent=2)
 
 
+def _load_audit_logs() -> List[Dict[str, Any]]:
+    """Load athlete audit logs from JSON file."""
+    try:
+        if os.path.exists(AUDIT_LOGS_FILE):
+            with open(AUDIT_LOGS_FILE, "r") as f:
+                return json.load(f)
+    except Exception as e:
+        logger.warning(f"Could not load audit logs file: {e}")
+    return []
+
+
+def _save_audit_logs(audit_logs: List[Dict[str, Any]]):
+    """Save athlete audit logs to JSON file."""
+    os.makedirs(DATA_DIR, exist_ok=True)
+    with open(AUDIT_LOGS_FILE, "w") as f:
+        json.dump(audit_logs, f, indent=2)
+
+
 def get_all_athletes() -> List[Dict[str, Any]]:
     """Get all registered athletes."""
     return _load_athletes()
@@ -97,6 +116,44 @@ def add_athlete(athlete: Dict[str, Any]) -> Dict[str, Any]:
     athletes.append(athlete)
     _save_athletes(athletes)
     return athlete
+
+
+def add_audit_log(audit_log: Dict[str, Any]) -> Dict[str, Any]:
+    """Add a daily audit log entry."""
+    audit_logs = _load_audit_logs()
+    audit_logs.append(audit_log)
+    _save_audit_logs(audit_logs)
+    return audit_log
+
+
+def _parse_iso_date(date_value: str) -> datetime:
+    """Parse YYYY-MM-DD date; fall back to oldest date for invalid values."""
+    try:
+        return datetime.strptime(date_value, "%Y-%m-%d")
+    except Exception:
+        return datetime.min
+
+
+def _parse_iso_datetime(dt_value: str) -> datetime:
+    """Parse ISO datetime; fall back to oldest date for invalid values."""
+    try:
+        return datetime.fromisoformat(dt_value)
+    except Exception:
+        return datetime.min
+
+
+def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
+    """Get athlete audit logs sorted by date (most recent first)."""
+    audit_logs = _load_audit_logs()
+    athlete_logs = [entry for entry in audit_logs if entry.get("athlete_id") == athlete_id]
+    athlete_logs.sort(
+        key=lambda item: (
+            _parse_iso_date(item.get("date", "")),
+            _parse_iso_datetime(item.get("created_at", "")),
+        ),
+        reverse=True,
+    )
+    return athlete_logs
 
 
 def get_athlete_next_event(athlete_id: str) -> Optional[Dict[str, Any]]:
