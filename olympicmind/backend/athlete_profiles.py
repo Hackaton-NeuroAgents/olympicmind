@@ -121,6 +121,9 @@ def add_athlete(athlete: Dict[str, Any]) -> Dict[str, Any]:
 
 def add_audit_log(audit_log: Dict[str, Any]) -> Dict[str, Any]:
     """Add a daily audit log entry."""
+    audit_log = dict(audit_log)
+    if "created_at" not in audit_log:
+        audit_log["created_at"] = datetime.utcnow().isoformat() + "Z"
     audit_logs = _load_audit_logs()
     audit_logs.append(audit_log)
     _save_audit_logs(audit_logs)
@@ -153,7 +156,7 @@ def get_athlete_audit_history(athlete_id: str) -> List[Dict[str, Any]]:
             logger.warning(f"Skipping audit entry for {athlete_id} missing field: {e}")
             continue
         except TypeError:
-            logger.warning(f"Skipping audit entry for {athlete_id} with invalid value types")
+            logger.warning(f"Skipping audit entry for {athlete_id}: invalid value types in date or created_at fields")
             continue
         except ValueError:
             logger.warning(f"Skipping audit entry for {athlete_id} with malformed date/timestamp format")

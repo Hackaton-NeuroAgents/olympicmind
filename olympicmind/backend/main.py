@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, field_validator
 import os
 import asyncio
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import Dict
 from dotenv import load_dotenv
 from agent import chat_with_agent
@@ -254,7 +254,6 @@ async def create_audit_log(req: AuditRequest):
             "athlete_id": req.athlete_id,
             "date": req.date,
             "scores": req.scores,
-            "created_at": datetime.now(timezone.utc).isoformat(),
         }
     )
     return {"status": "created", "audit": audit_entry}
