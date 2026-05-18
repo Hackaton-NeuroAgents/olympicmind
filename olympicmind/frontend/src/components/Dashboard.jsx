@@ -20,6 +20,20 @@ const getScoreColor = (score) => {
   return 'text-amber-300 bg-amber-400/10 border-amber-400/30';
 };
 
+const normalizeAthletes = (items) =>
+  items
+    .map((athlete, index) => {
+      const parsedScore = Number(athlete?.latestScore);
+      if (!Number.isFinite(parsedScore)) return null;
+      return {
+        id: athlete?.id ?? `athlete-${index}`,
+        name: athlete?.name || 'Unknown athlete',
+        discipline: athlete?.discipline || 'Unknown discipline',
+        latestScore: Math.max(0, Math.min(100, parsedScore)),
+      };
+    })
+    .filter(Boolean);
+
 const Dashboard = () => {
   const [athletes, setAthletes] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,8 +45,9 @@ const Dashboard = () => {
       try {
         const res = await axios.get(`${API_BASE_URL}/team-readiness`);
         const incomingAthletes = Array.isArray(res.data?.athletes) ? res.data.athletes : [];
+        const safeAthletes = normalizeAthletes(incomingAthletes);
         if (isMounted) {
-          setAthletes(incomingAthletes.length ? incomingAthletes : mockAthletes);
+          setAthletes(safeAthletes.length ? safeAthletes : mockAthletes);
         }
       } catch (err) {
         console.warn('Using mock team readiness data:', err);
@@ -71,8 +86,11 @@ const Dashboard = () => {
             <div
               className="w-28 h-28 rounded-full p-2 shrink-0"
               style={progressStyle}
-              role="img"
-              aria-label={`Team average score ${teamAverageScore}%`}
+              role="progressbar"
+              aria-label="Team average score"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={teamAverageScore}
             >
               <div className="w-full h-full rounded-full bg-background/95 border border-white/10 flex items-center justify-center">
                 <span className="text-2xl font-bold">{teamAverageScore}%</span>
@@ -119,7 +137,11 @@ const Dashboard = () => {
                 </tr>
               ) : (
                 athletes.map((athlete) => (
-                  <tr key={athlete.id} className="border-t border-white/5">
+                  <tr
+                    key={athlete.id}
+                    tabIndex={0}
+                    className="border-t border-white/5 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-inset"
+                  >
                     <td className="px-5 py-3 font-medium">{athlete.name}</td>
                     <td className="px-5 py-3 text-gray-300">{athlete.discipline}</td>
                     <td className="px-5 py-3">
